@@ -6,12 +6,13 @@ This code is currently experimental WIP. Do not trust this for anything importan
 
 ### Building
 
-Since diamond-types is not yet published to cargo, you'll need to:
-
-1. Check out diamond-types locally
-2. Check out diamond-js (this package) locally in an adjacent directory
-3. Build:
-
 ```
 $ wasm-pack build --target nodejs
 ```
+
+See example.js for a simple usage example. Note the API is in flux and will change.
+
+
+# License
+
+ISC
