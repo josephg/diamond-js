@@ -59,9 +59,22 @@ impl Doc {
 
     #[wasm_bindgen]
     pub fn get_txn_since(&self, version: JsValue) -> Result<JsValue, JsValue> {
-        let clock: VectorClock = serde_wasm_bindgen::from_value(version)?;
-        let txns = self.inner.get_all_txns_since(&clock);
+        let txns = if version.is_null() || version.is_undefined() {
+            self.inner.get_all_txns::<Vec<_>>()
+        } else {
+            let clock: VectorClock = serde_wasm_bindgen::from_value(version)?;
+            self.inner.get_all_txns_since::<Vec<_>>(&clock)
+        };
+
         serde_wasm_bindgen::to_value(&txns)
+            .map_err(|err| err.into())
+    }
+
+    #[wasm_bindgen]
+    pub fn get_ops_since(&self, order: u32) -> Result<JsValue, JsValue> {
+        let changes = self.inner.positional_changes_since(order);
+
+        serde_wasm_bindgen::to_value(&changes)
             .map_err(|err| err.into())
     }
 
