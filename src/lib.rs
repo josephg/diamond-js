@@ -1,10 +1,12 @@
 mod utils;
 
 use wasm_bindgen::prelude::*;
-use diamond_types::list::ListCRDT;
-use diamond_types::list::external_txn::{RemoteTxn, VectorClock};
+use diamond_types::list::{Branch, ListCRDT, ROOT_ORDER};
+use diamond_types::list::external_txn::{RemoteId, RemoteTxn, VectorClock};
 use diamond_types::AgentId;
-
+use smallvec::smallvec;
+use serde_wasm_bindgen::Serializer;
+use serde::{Serialize};
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -52,8 +54,20 @@ impl Doc {
     }
 
     #[wasm_bindgen]
-    pub fn get_version(&self) -> Result<JsValue, JsValue> {
+    pub fn get_vector_clock(&self) -> Result<JsValue, JsValue> {
         serde_wasm_bindgen::to_value(&self.inner.get_vector_clock())
+            .map_err(|err| err.into())
+    }
+
+    // #[wasm_bindgen]
+    // pub fn get_frontier(&self) -> Result<JsValue, JsValue> {
+    //     serde_wasm_bindgen::to_value(&self.inner.get_frontier::<Vec<RemoteId>>())
+    //         .map_err(|err| err.into())
+    // }
+
+    #[wasm_bindgen]
+    pub fn get_next_order(&self) -> Result<JsValue, JsValue> {
+        serde_wasm_bindgen::to_value(&self.inner.get_next_order())
             .map_err(|err| err.into())
     }
 
@@ -70,13 +84,46 @@ impl Doc {
             .map_err(|err| err.into())
     }
 
+    // #[wasm_bindgen]
+    // pub fn positional_ops_since(&self, order: u32) -> Result<JsValue, JsValue> {
+    //     let changes = self.inner.positional_changes_since(order);
+
+    //     serde_wasm_bindgen::to_value(&changes)
+    //         .map_err(|err| err.into())
+    // }
+
     #[wasm_bindgen]
-    pub fn get_ops_since(&self, order: u32) -> Result<JsValue, JsValue> {
-        let changes = self.inner.positional_changes_since(order);
+    pub fn traversal_ops_since_order(&self, order: u32) -> Result<JsValue, JsValue> {
+        let changes = self.inner.traversal_changes_since(order);
 
         serde_wasm_bindgen::to_value(&changes)
             .map_err(|err| err.into())
     }
+
+    #[wasm_bindgen]
+    pub fn attributed_patches_since_order(&self, order: u32) -> Result<JsValue, JsValue> {
+        let (changes, attr) = self.inner.remote_attr_patches_since(order);
+
+        // Using serialize_maps_as_objects here to flatten RemoteSpan into {agent, seq, len}.
+        (changes, attr)
+            .serialize(&Serializer::new().serialize_maps_as_objects(true))
+            .map_err(|err| err.into())
+    }
+
+    // #[wasm_bindgen]
+    // pub fn traversal_ops_since(&self, branch: JsValue) -> Result<JsValue, JsValue> {
+    //     let branch: Branch = if branch.is_null() || branch.is_undefined() {
+    //         smallvec![ROOT_ORDER]
+    //     } else {
+    //         let b: Vec<RemoteId> = serde_wasm_bindgen::from_value(branch)?;
+    //         self.inner.remote_ids_to_branch(&b)
+    //     };
+
+    //     let changes = self.inner.traversal_changes_since_branch(branch.as_slice());
+
+    //     serde_wasm_bindgen::to_value(&changes)
+    //         .map_err(|err| err.into())
+    // }
 
     #[wasm_bindgen]
     pub fn merge_remote_txns(&mut self, txns: JsValue) -> Result<(), JsValue> {
