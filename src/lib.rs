@@ -24,6 +24,7 @@ pub struct Doc {
 impl Doc {
     #[wasm_bindgen(constructor)]
     pub fn new(agent_name: Option<String>) -> Self {
+        utils::set_panic_hook();
 
         let mut inner = ListCRDT::new();
         let name_str = agent_name.as_ref().map_or("seph", |s| s.as_str());
@@ -59,11 +60,11 @@ impl Doc {
             .map_err(|err| err.into())
     }
 
-    // #[wasm_bindgen]
-    // pub fn get_frontier(&self) -> Result<JsValue, JsValue> {
-    //     serde_wasm_bindgen::to_value(&self.inner.get_frontier::<Vec<RemoteId>>())
-    //         .map_err(|err| err.into())
-    // }
+    #[wasm_bindgen]
+    pub fn get_frontier(&self) -> Result<JsValue, JsValue> {
+        serde_wasm_bindgen::to_value(&self.inner.get_frontier::<Vec<RemoteId>>())
+            .map_err(|err| err.into())
+    }
 
     #[wasm_bindgen]
     pub fn get_next_order(&self) -> Result<JsValue, JsValue> {
@@ -84,16 +85,16 @@ impl Doc {
             .map_err(|err| err.into())
     }
 
-    // #[wasm_bindgen]
-    // pub fn positional_ops_since(&self, order: u32) -> Result<JsValue, JsValue> {
-    //     let changes = self.inner.positional_changes_since(order);
+    #[wasm_bindgen]
+    pub fn positional_ops_since(&self, order: u32) -> Result<JsValue, JsValue> {
+        let changes = self.inner.positional_changes_since(order);
 
-    //     serde_wasm_bindgen::to_value(&changes)
-    //         .map_err(|err| err.into())
-    // }
+        serde_wasm_bindgen::to_value(&changes)
+            .map_err(|err| err.into())
+    }
 
     #[wasm_bindgen]
-    pub fn traversal_ops_since_order(&self, order: u32) -> Result<JsValue, JsValue> {
+    pub fn traversal_ops_since(&self, order: u32) -> Result<JsValue, JsValue> {
         let changes = self.inner.traversal_changes_since(order);
 
         serde_wasm_bindgen::to_value(&changes)
@@ -101,7 +102,15 @@ impl Doc {
     }
 
     #[wasm_bindgen]
-    pub fn attributed_patches_since_order(&self, order: u32) -> Result<JsValue, JsValue> {
+    pub fn traversal_ops_flat(&self, order: u32) -> Result<JsValue, JsValue> {
+        let changes = self.inner.flat_traversal_since(order);
+
+        serde_wasm_bindgen::to_value(&changes)
+            .map_err(|err| err.into())
+    }
+
+    #[wasm_bindgen]
+    pub fn attributed_patches_since(&self, order: u32) -> Result<JsValue, JsValue> {
         let (changes, attr) = self.inner.remote_attr_patches_since(order);
 
         // Using serialize_maps_as_objects here to flatten RemoteSpan into {agent, seq, len}.
@@ -110,20 +119,20 @@ impl Doc {
             .map_err(|err| err.into())
     }
 
-    // #[wasm_bindgen]
-    // pub fn traversal_ops_since(&self, branch: JsValue) -> Result<JsValue, JsValue> {
-    //     let branch: Branch = if branch.is_null() || branch.is_undefined() {
-    //         smallvec![ROOT_ORDER]
-    //     } else {
-    //         let b: Vec<RemoteId> = serde_wasm_bindgen::from_value(branch)?;
-    //         self.inner.remote_ids_to_branch(&b)
-    //     };
+    #[wasm_bindgen]
+    pub fn traversal_ops_since_branch(&self, branch: JsValue) -> Result<JsValue, JsValue> {
+        let branch: Branch = if branch.is_null() || branch.is_undefined() {
+            smallvec![ROOT_ORDER]
+        } else {
+            let b: Vec<RemoteId> = serde_wasm_bindgen::from_value(branch)?;
+            self.inner.remote_ids_to_branch(&b)
+        };
 
-    //     let changes = self.inner.traversal_changes_since_branch(branch.as_slice());
+        let changes = self.inner.traversal_changes_since_branch(branch.as_slice());
 
-    //     serde_wasm_bindgen::to_value(&changes)
-    //         .map_err(|err| err.into())
-    // }
+        serde_wasm_bindgen::to_value(&changes)
+            .map_err(|err| err.into())
+    }
 
     #[wasm_bindgen]
     pub fn merge_remote_txns(&mut self, txns: JsValue) -> Result<(), JsValue> {
@@ -133,4 +142,16 @@ impl Doc {
         }
         Ok(())
     }
+
+    #[wasm_bindgen]
+    pub fn ins_at_order(&mut self, pos: usize, content: &str, order: u32, is_left: bool) {
+        // let id = self.0.get_or_create_agent_id("seph");
+        self.inner.local_insert_at_order(self.agent_id, pos, content.into(), order, is_left);
+    }
+
+    #[wasm_bindgen]
+    pub fn del_at_order(&mut self, pos: usize, del_span: usize, order: u32) {
+        self.inner.local_delete_at_order(self.agent_id, pos, del_span, order, true);
+    }
+
 }
