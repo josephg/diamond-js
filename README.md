@@ -1,18 +1,3 @@
-# Diamond JS wrapper library
+# PACKAGE MOVED
 
-This is a javascript / WASM wrapper around [diamond types](https://github.com/josephg/diamond-types).
-
-This code is currently experimental WIP. Do not trust this for anything important. The API can and will change without notice.
-
-### Building
-
-```
-$ wasm-pack build --target nodejs
-```
-
-See example.js for a simple usage example. Note the API is in flux and will change.
-
-
-# License
-
-ISC
+This package has moved. It is now a sub-crate of [diamond-types](https://github.com/josephg/diamond-types/).
